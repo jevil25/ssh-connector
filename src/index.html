@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>SSH Connector</title>
+  <link rel="stylesheet" href="../node_modules/@xterm/xterm/css/xterm.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <aside id="sidebar">
+    <header><div class="brand"><img src="assets/logo.png" alt="" width="28" height="28"><h1>SSH Connector</h1></div><button id="settings-button" title="Settings and backups">Settings</button></header>
+    <div class="sidebar-actions"><button id="new-server" class="primary">+ Add server</button><button id="import-ssh">Import SSH config</button></div>
+    <input id="server-search" type="search" placeholder="Search servers…  ⌘K" aria-label="Search servers">
+    <select id="group-filter" aria-label="Filter server group"><option value="">All groups</option></select>
+    <div id="server-list"></div>
+    <footer>Local on your Mac · SSH + SFTP<br><span id="keychain-status">Checking credential storage…</span></footer>
+  </aside>
+  <main>
+    <nav id="tabs" aria-label="Open connections"></nav>
+    <div id="welcome">
+      <img class="welcome-logo" src="assets/logo.png" alt="SSH Connector logo" width="112" height="112">
+      <h2>Your servers, one place.</h2>
+      <p>Add a server or import your existing SSH configuration.<br>Then connect to open a terminal and browse its files.</p>
+      <button id="welcome-add" class="primary">Add your first server</button>
+      <p class="muted">Uses local SSH keys and your SSH agent.<br>New host fingerprints are checked before connecting.</p>
+    </div>
+    <section id="workspace" hidden>
+      <div class="connection-bar"><span id="connection-status"></span><div><button id="commands-button">Saved commands</button><button id="toggle-files">Hide files</button><button id="reconnect">Reconnect</button><button id="disconnect">Disconnect</button></div></div>
+      <div id="split">
+        <section id="terminal-area" aria-label="SSH terminal"><div id="terminals"></div></section>
+        <section id="files-panel" aria-label="Remote file manager">
+          <div class="file-heading"><strong>Remote files</strong><button id="refresh-files">Refresh</button></div>
+          <form id="path-form"><button type="button" id="parent-folder" title="Parent folder">↑</button><input id="remote-path" aria-label="Remote directory"><button type="submit">Go</button></form>
+          <div class="file-actions"><button id="upload-files">Upload files</button><button id="upload-folder">Upload folder</button><button id="new-folder">New folder</button></div>
+          <input id="file-search" type="search" placeholder="Filter this folder…" aria-label="Filter remote files">
+          <div id="file-scroll"><table><thead><tr><th>Name</th><th>Size</th><th>Modified</th></tr></thead><tbody id="file-list"></tbody></table><div id="file-empty"></div></div>
+          <div class="file-actions bottom"><button id="download-file" disabled>Download</button><button id="rename-file" disabled>Rename</button><button id="delete-file" class="danger" disabled>Delete</button></div>
+          <div class="drop-hint">Drop local files or folders here to upload</div>
+        </section>
+      </div>
+    </section>
+    <section id="transfer-panel"><div class="transfer-heading"><strong>Transfers</strong><button id="clear-transfers">Clear finished</button></div><div id="transfer-list"><span class="muted">No transfers yet.</span></div></section>
+    <div id="notice" role="status" hidden></div>
+  </main>
+
+  <dialog id="server-dialog">
+    <form id="server-form">
+      <h2 id="server-dialog-title">Add server</h2>
+      <input type="hidden" name="id">
+      <div class="form-grid">
+        <label>Name<input name="name" required placeholder="Production server"></label>
+        <label>Group<input name="group" placeholder="Work / Personal" list="groups"></label>
+        <label>Hostname, IP, or SSH alias<input name="host" required placeholder="192.168.1.10 or my-server"></label>
+        <label>Port<input name="port" type="number" min="1" max="65535" placeholder="From SSH config, or 22"></label>
+        <label>Username<input name="username" placeholder="From SSH config, or Mac username"></label>
+        <label>Password<input name="password" type="password" autocomplete="new-password" placeholder="Leave blank to keep saved password"></label>
+      </div>
+      <label class="check"><input name="clearPassword" type="checkbox">Remove saved password</label>
+      <p class="muted small">Entered passwords are saved encrypted with macOS Keychain protection. Leave empty to use keys or enter a password when connecting.</p>
+      <label>Private key (optional; otherwise use SSH config and agent)<div class="input-action"><input name="keyPath" list="keys" placeholder="~/.ssh/id_ed25519"><button type="button" id="browse-key">Choose…</button></div></label>
+      <label>Jump host (optional)<input name="jumpHost" placeholder="bastion-alias or user@host:port; comma-separated for multiple hops"></label>
+      <label>Notes<input name="notes" placeholder="Optional connection notes"></label>
+      <p class="muted small">VPN connections use your Mac’s active VPN. SSH configuration is read when connecting.</p>
+      <p id="server-error" class="error" role="alert"></p>
+      <div class="dialog-actions"><button type="button" id="cancel-server">Cancel</button><button type="submit" class="primary">Save server</button></div>
+    </form>
+  </dialog>
+  <datalist id="keys"></datalist><datalist id="groups"></datalist>
+
+  <dialog id="prompt-dialog"><form id="prompt-form"><h2 id="prompt-title"></h2><label><span id="prompt-label"></span><input id="prompt-value" required autocomplete="off"></label><label class="check" id="prompt-save-label" hidden><input id="prompt-save" type="checkbox">Save password with Keychain protection</label><div class="dialog-actions"><button type="button" id="prompt-cancel">Cancel</button><button type="submit" class="primary">Continue</button></div></form></dialog>
+
+  <dialog id="commands-dialog"><h2>Saved commands</h2><p class="muted">Commands run only when you click Run on a connected terminal.</p><div id="command-list"></div><form id="command-form"><label>Name<input id="command-name" required placeholder="Check disk usage"></label><label>Command<textarea id="command-text" required placeholder="df -h"></textarea></label><button type="submit">Save command</button></form><div class="dialog-actions"><button id="close-commands">Close</button></div></dialog>
+
+  <dialog id="settings-dialog"><h2>Settings & backups</h2><p>Backups contain server settings and saved commands.<br>Passwords, private keys, and trusted fingerprints stay on this Mac.</p><div class="settings-actions"><button id="export-backup">Export backup…</button><button id="import-backup">Import backup…</button><button id="forget-hosts">Clear saved host fingerprints…</button></div><p class="muted">Imports merge servers without replacing existing settings.<br>Your ~/.ssh/config and key files are never changed.</p><div class="dialog-actions"><button id="close-settings">Close</button></div></dialog>
+
+  <script src="../node_modules/@xterm/xterm/lib/xterm.js"></script>
+  <script src="../node_modules/@xterm/addon-fit/lib/addon-fit.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>

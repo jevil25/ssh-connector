@@ -1,0 +1,62 @@
+{
+  "name": "ssh-connector",
+  "version": "1.0.0",
+  "description": "A local Mac SSH terminal and SFTP file manager",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "env -u ELECTRON_RUN_AS_NODE electron .",
+    "test": "node --test test/*.test.js",
+    "check": "node --check src/main.js && node --check src/ssh.js && node --check src/store.js && node --check src/renderer.js && node --check src/preload.js",
+    "pack": "electron-builder --mac dir",
+    "dist": "electron-builder --mac dmg",
+    "test:app": "env -u ELECTRON_RUN_AS_NODE electron test/electron-smoke.js",
+    "screenshots": "env -u ELECTRON_RUN_AS_NODE electron scripts/screenshots.js"
+  },
+  "keywords": [
+    "ssh",
+    "sftp",
+    "macos",
+    "electron",
+    "terminal",
+    "file-transfer"
+  ],
+  "author": "Aaron Jevil Nazareth (https://github.com/jevil25)",
+  "license": "MIT",
+  "dependencies": {
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
+    "ssh2": "^1.17.0"
+  },
+  "devDependencies": {
+    "electron": "^42.11.10",
+    "electron-builder": "^26.15.3"
+  },
+  "private": true,
+  "build": {
+    "appId": "local.sshconnector.desktop",
+    "productName": "SSH Connector",
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "icon": "build/icon.icns",
+      "category": "public.app-category.developer-tools",
+      "target": [
+        "dmg",
+        "dir"
+      ]
+    },
+    "directories": {
+      "output": "release"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jevil25/ssh-connector.git"
+  },
+  "homepage": "https://github.com/jevil25/ssh-connector#readme",
+  "bugs": {
+    "url": "https://github.com/jevil25/ssh-connector/issues"
+  }
+}

@@ -1,0 +1,10 @@
+node_modules/
+release/
+release-installed/
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example
+servers.json
+ssh-connector-backup*.json
